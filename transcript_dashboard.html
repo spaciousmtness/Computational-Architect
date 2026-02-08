@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcript Aggregator Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a26;
+    --bg-card: #16161f;
+    --bg-hover: #1e1e2a;
+    --border: #2a2a3a;
+    --border-light: #3a3a4a;
+    --text-primary: #e8e8f0;
+    --text-secondary: #9898aa;
+    --text-muted: #6a6a7a;
+    --accent-1: #6c5ce7;
+    --accent-2: #00cec9;
+    --accent-3: #fd79a8;
+    --accent-4: #fdcb6e;
+    --accent-5: #55efc4;
+    --accent-6: #74b9ff;
+    --speaker-tristan: #6c5ce7;
+    --speaker-melissa: #00cec9;
+    --glow-1: rgba(108, 92, 231, 0.15);
+    --glow-2: rgba(0, 206, 201, 0.15);
+    --gradient-1: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    --gradient-2: linear-gradient(135deg, #00cec9 0%, #55efc4 100%);
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 48px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-1); }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 20px; }
+
+  .logo {
+    width: 40px; height: 40px;
+    background: var(--gradient-1);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 18px;
+    box-shadow: 0 0 20px var(--glow-1);
+  }
+
+  .header-title h1 {
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .header-title .subtitle {
+    font-size: 12px; color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .header-meta { display: flex; gap: 24px; align-items: center; }
+  .meta-item { text-align: center; }
+  .meta-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+  .meta-item .value { font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+  .speaker-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  }
+  .speaker-badge.tristan { background: rgba(108,92,231,0.15); color: #a29bfe; }
+  .speaker-badge.melissa { background: rgba(0,206,201,0.15); color: #55efc4; }
+  .speaker-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .speaker-badge.tristan .dot { background: var(--speaker-tristan); }
+  .speaker-badge.melissa .dot { background: var(--speaker-melissa); }
+
+  /* ===== TIMELINE SCRUBBER ===== */
+  .timeline-container {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px 20px;
+    position: sticky;
+    top: 82px;
+    z-index: 99;
+  }
+
+  .timeline-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .timeline-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px; font-weight: 600;
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .timeline-topic {
+    font-size: 13px; color: var(--text-secondary);
+    padding: 4px 12px; border-radius: 20px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    transition: all 0.3s;
+  }
+
+  .playback-controls {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .play-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--gradient-1); border: none;
+    color: white; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 0 15px var(--glow-1);
+  }
+  .play-btn:hover { transform: scale(1.1); }
+
+  .speed-btn {
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    color: var(--text-secondary); cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    transition: all 0.2s;
+  }
+  .speed-btn:hover, .speed-btn.active { border-color: var(--accent-1); color: var(--accent-1); }
+
+  .timeline-track {
+    position: relative; height: 48px;
+    background: var(--bg-tertiary); border-radius: 8px;
+    overflow: hidden; cursor: pointer;
+    border: 1px solid var(--border);
+  }
+
+  .timeline-waveform {
+    position: absolute; inset: 0;
+    display: flex; align-items: center;
+    padding: 0 4px; gap: 1px;
+  }
+
+  .wave-bar {
+    flex: 1; border-radius: 2px;
+    transition: background 0.15s;
+    min-width: 2px;
+  }
+  .wave-bar.tristan { background: rgba(108,92,231,0.4); }
+  .wave-bar.melissa { background: rgba(0,206,201,0.4); }
+  .wave-bar.tristan.active { background: rgba(108,92,231,0.9); }
+  .wave-bar.melissa.active { background: rgba(0,206,201,0.9); }
+
+  .timeline-playhead {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: white;
+    box-shadow: 0 0 8px rgba(255,255,255,0.5);
+    transition: left 0.1s;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .timeline-markers {
+    display: flex; justify-content: space-between;
+    padding: 6px 0 0; font-size: 10px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Topic markers on timeline */
+  .topic-marker {
+    position: absolute; top: 0; width: 1px; height: 100%;
+    background: rgba(255,255,255,0.15);
+    z-index: 3;
+  }
+  .topic-marker .topic-label {
+    position: absolute; top: -18px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px; color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .timeline-track:hover .topic-label { opacity: 1; }
+
+  /* ===== MAIN GRID ===== */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    grid-template-rows: auto;
+    gap: 0;
+    min-height: calc(100vh - 180px);
+  }
+
+  /* ===== TRANSCRIPT PANEL ===== */
+  .transcript-panel {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    height: calc(100vh - 180px);
+    overflow-y: auto;
+    position: sticky;
+    top: 150px;
+  }
+
+  .transcript-panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted);
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; background: var(--bg-secondary); z-index: 5;
+  }
+
+  .search-input {
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px;
+    color: var(--text-primary); font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    outline: none; width: 140px;
+    transition: all 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent-1); width: 180px; }
+
+  .transcript-entry {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+  }
+  .transcript-entry:hover { background: var(--bg-hover); }
+  .transcript-entry.active {
+    background: rgba(108,92,231,0.08);
+    border-left: 3px solid var(--accent-1);
+  }
+  .transcript-entry.active.melissa-active {
+    background: rgba(0,206,201,0.08);
+    border-left-color: var(--accent-2);
+  }
+
+  .transcript-timestamp {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .transcript-speaker {
+    font-size: 11px; font-weight: 600; margin-bottom: 2px;
+  }
+  .transcript-speaker.tristan { color: #a29bfe; }
+  .transcript-speaker.melissa { color: #55efc4; }
+
+  .transcript-text {
+    font-size: 13px; color: var(--text-secondary);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .transcript-entry.active .transcript-text {
+    -webkit-line-clamp: unset;
+    color: var(--text-primary);
+  }
+
+  .transcript-text .highlight {
+    background: rgba(253,203,110,0.3);
+    border-radius: 2px; padding: 0 2px;
+  }
+
+  /* ===== ANALYTICS PANEL ===== */
+  .analytics-panel {
+    padding: 24px;
+    overflow-y: auto;
+    height: calc(100vh - 180px);
+  }
+
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .card:hover {
+    border-color: var(--border-light);
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+  .card-badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    background: var(--bg-tertiary); color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .card-body { padding: 18px; }
+
+  .card-full { grid-column: 1 / -1; }
+
+  /* Speaker Stats */
+  .speaker-stats { display: flex; gap: 16px; }
+  .speaker-stat-block {
+    flex: 1; padding: 14px; border-radius: 10px;
+    background: var(--bg-tertiary);
+    position: relative; overflow: hidden;
+  }
+  .speaker-stat-block::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .speaker-stat-block.tristan::before { background: var(--gradient-1); }
+  .speaker-stat-block.melissa::before { background: var(--gradient-2); }
+
+  .stat-name { font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+  .stat-name.tristan { color: #a29bfe; }
+  .stat-name.melissa { color: #55efc4; }
+
+  .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); }
+  .stat-value {
+    font-size: 11px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Talk Ratio Bar */
+  .ratio-bar-container { margin-top: 12px; }
+  .ratio-bar {
+    height: 8px; border-radius: 4px; overflow: hidden;
+    display: flex; background: var(--bg-tertiary);
+  }
+  .ratio-bar .tristan-bar {
+    background: var(--gradient-1);
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ratio-bar .melissa-bar {
+    background: var(--gradient-2);
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ratio-labels {
+    display: flex; justify-content: space-between; margin-top: 6px;
+    font-size: 11px;
+  }
+  .ratio-labels .tristan-label { color: #a29bfe; }
+  .ratio-labels .melissa-label { color: #55efc4; }
+
+  /* Canvas Charts */
+  canvas { width: 100% !important; }
+
+  /* Topic Tags */
+  .topic-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .topic-tag {
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+    border: 1px solid; cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .topic-tag .count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; opacity: 0.7;
+  }
+  .topic-tag:hover { transform: translateY(-1px); }
+
+  .topic-tag.ai { border-color: rgba(108,92,231,0.4); background: rgba(108,92,231,0.1); color: #a29bfe; }
+  .topic-tag.office { border-color: rgba(0,206,201,0.4); background: rgba(0,206,201,0.1); color: #55efc4; }
+  .topic-tag.team { border-color: rgba(253,121,168,0.4); background: rgba(253,121,168,0.1); color: #fd79a8; }
+  .topic-tag.ops { border-color: rgba(253,203,110,0.4); background: rgba(253,203,110,0.1); color: #fdcb6e; }
+  .topic-tag.personal { border-color: rgba(116,185,255,0.4); background: rgba(116,185,255,0.1); color: #74b9ff; }
+  .topic-tag.strategy { border-color: rgba(85,239,196,0.4); background: rgba(85,239,196,0.1); color: #55efc4; }
+
+  .topic-tag.active { transform: scale(1.05); box-shadow: 0 0 12px rgba(108,92,231,0.2); }
+
+  /* People Network */
+  .people-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+  .person-node {
+    padding: 10px 8px; border-radius: 10px;
+    background: var(--bg-tertiary); text-align: center;
+    transition: all 0.3s; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .person-node:hover { border-color: var(--border-light); transform: translateY(-2px); }
+  .person-node.highlighted { border-color: var(--accent-1); background: rgba(108,92,231,0.08); }
+
+  .person-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    margin: 0 auto 6px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+  .person-name { font-size: 11px; font-weight: 500; }
+  .person-mentions {
+    font-size: 10px; color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Action Items */
+  .action-items { display: flex; flex-direction: column; gap: 8px; }
+  .action-item {
+    padding: 10px 14px; border-radius: 8px;
+    background: var(--bg-tertiary);
+    border-left: 3px solid;
+    font-size: 12px; line-height: 1.5;
+    transition: all 0.2s;
+  }
+  .action-item:hover { background: var(--bg-hover); }
+  .action-item.priority-high { border-left-color: var(--accent-3); }
+  .action-item.priority-med { border-left-color: var(--accent-4); }
+  .action-item.priority-low { border-left-color: var(--accent-6); }
+
+  .action-owner {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 3px;
+  }
+
+  /* Sentiment indicator */
+  .sentiment-indicator {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  }
+  .sentiment-indicator.positive { background: rgba(85,239,196,0.1); color: var(--accent-5); }
+  .sentiment-indicator.neutral { background: rgba(152,152,170,0.1); color: var(--text-secondary); }
+  .sentiment-indicator.concerned { background: rgba(253,121,168,0.1); color: var(--accent-3); }
+  .sentiment-indicator.excited { background: rgba(108,92,231,0.1); color: #a29bfe; }
+
+  /* Word Cloud */
+  .word-cloud {
+    display: flex; flex-wrap: wrap; gap: 6px 10px;
+    align-items: center; justify-content: center;
+    padding: 10px;
+  }
+  .cloud-word {
+    cursor: default;
+    transition: all 0.2s;
+    opacity: 0.85;
+  }
+  .cloud-word:hover { opacity: 1; transform: scale(1.1); }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .card { animation: fadeInUp 0.5s ease-out backwards; }
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.1s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.2s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+  .card:nth-child(6) { animation-delay: 0.3s; }
+  .card:nth-child(7) { animation-delay: 0.35s; }
+
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-5); display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  /* Key Quotes */
+  .quote-block {
+    padding: 12px 16px; border-radius: 8px;
+    background: var(--bg-tertiary);
+    border-left: 3px solid var(--accent-1);
+    margin-bottom: 10px;
+    font-size: 12px; font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quote-block:hover { background: var(--bg-hover); }
+  .quote-block .quote-attr {
+    font-style: normal; font-weight: 600; font-size: 11px;
+    margin-top: 6px; color: var(--text-muted);
+  }
+  .quote-block.melissa-quote { border-left-color: var(--accent-2); }
+
+  /* Segment detail overlay */
+  .segment-detail {
+    position: fixed; top: 0; right: -500px; bottom: 0; width: 460px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    z-index: 200; padding: 24px;
+    transition: right 0.4s cubic-bezier(0.4,0,0.2,1);
+    overflow-y: auto;
+    box-shadow: -20px 0 60px rgba(0,0,0,0.5);
+  }
+  .segment-detail.open { right: 0; }
+  .segment-detail-close {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    color: var(--text-secondary); width: 32px; height: 32px;
+    border-radius: 8px; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .segment-detail-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  .overlay-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 199; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .overlay-bg.open { opacity: 1; pointer-events: all; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .transcript-panel { height: 300px; position: relative; top: 0; }
+    .analytics-panel { height: auto; }
+    .header { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
+    .header-meta { gap: 12px; }
+    .timeline-container { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">T</div>
+    <div class="header-title">
+      <h1>Tristan x Melissa Check In</h1>
+      <div class="subtitle">Feb 5, 2026 &middot; Transcript Analysis Dashboard</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="meta-item">
+      <div class="label">Duration</div>
+      <div class="value">48:58</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Segments</div>
+      <div class="value" id="segment-count">0</div>
+    </div>
+    <div class="meta-item">
+      <div class="label">Speakers</div>
+      <div style="display: flex; gap: 6px; margin-top: 2px;">
+        <span class="speaker-badge tristan"><span class="dot"></span> Tristan</span>
+        <span class="speaker-badge melissa"><span class="dot"></span> Melissa</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TIMELINE SCRUBBER -->
+<div class="timeline-container">
+  <div class="timeline-header">
+    <div class="playback-controls">
+      <button class="play-btn" id="play-btn" title="Play/Pause">&#9654;</button>
+      <span class="timeline-time" id="current-time">00:00:00</span>
+      <button class="speed-btn active" data-speed="1">1x</button>
+      <button class="speed-btn" data-speed="2">2x</button>
+      <button class="speed-btn" data-speed="5">5x</button>
+    </div>
+    <div class="timeline-topic" id="current-topic">Greeting &amp; Weather</div>
+  </div>
+  <div class="timeline-track" id="timeline-track">
+    <div class="timeline-waveform" id="waveform"></div>
+    <div class="timeline-playhead" id="playhead" style="left: 0%;"></div>
+  </div>
+  <div class="timeline-markers">
+    <span>00:00</span><span>10:00</span><span>20:00</span><span>30:00</span><span>40:00</span><span>48:58</span>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-grid">
+  <!-- TRANSCRIPT -->
+  <div class="transcript-panel" id="transcript-panel">
+    <div class="transcript-panel-header">
+      <span>Transcript</span>
+      <input type="text" class="search-input" id="search-input" placeholder="Search transcript...">
+    </div>
+    <div id="transcript-list"></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="analytics-panel">
+    <div class="analytics-grid">
+
+      <!-- Speaker Analytics -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Speaker Analytics</span>
+          <span class="card-badge">LIVE</span>
+        </div>
+        <div class="card-body">
+          <div class="speaker-stats">
+            <div class="speaker-stat-block tristan">
+              <div class="stat-name tristan">Tristan Scott</div>
+              <div class="stat-row"><span class="stat-label">Words</span><span class="stat-value" id="tristan-words">0</span></div>
+              <div class="stat-row"><span class="stat-label">Turns</span><span class="stat-value" id="tristan-turns">0</span></div>
+              <div class="stat-row"><span class="stat-label">Avg length</span><span class="stat-value" id="tristan-avg">0w</span></div>
+              <div class="stat-row"><span class="stat-label">Questions</span><span class="stat-value" id="tristan-questions">0</span></div>
+            </div>
+            <div class="speaker-stat-block melissa">
+              <div class="stat-name melissa">Melissa Turner</div>
+              <div class="stat-row"><span class="stat-label">Words</span><span class="stat-value" id="melissa-words">0</span></div>
+              <div class="stat-row"><span class="stat-label">Turns</span><span class="stat-value" id="melissa-turns">0</span></div>
+              <div class="stat-row"><span class="stat-label">Avg length</span><span class="stat-value" id="melissa-avg">0w</span></div>
+              <div class="stat-row"><span class="stat-label">Questions</span><span class="stat-value" id="melissa-questions">0</span></div>
+            </div>
+          </div>
+          <div class="ratio-bar-container">
+            <div class="ratio-bar">
+              <div class="tristan-bar" id="tristan-ratio" style="width:0%"></div>
+              <div class="melissa-bar" id="melissa-ratio" style="width:0%"></div>
+            </div>
+            <div class="ratio-labels">
+              <span class="tristan-label" id="tristan-pct">0%</span>
+              <span class="melissa-label" id="melissa-pct">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sentiment Flow -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Sentiment Flow</span>
+          <span class="card-badge" id="current-sentiment-badge">NEUTRAL</span>
+        </div>
+        <div class="card-body">
+          <canvas id="sentiment-chart" height="160"></canvas>
+        </div>
+      </div>
+
+      <!-- Topic Distribution -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Topic Distribution</span>
+          <span class="card-badge">OVER TIME</span>
+        </div>
+        <div class="card-body">
+          <canvas id="topic-chart" height="130"></canvas>
+          <div class="topic-tags" id="topic-tags" style="margin-top: 14px;"></div>
+        </div>
+      </div>
+
+      <!-- Speaking Pace -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Speaking Pace</span>
+          <span class="card-badge">WPM</span>
+        </div>
+        <div class="card-body">
+          <canvas id="pace-chart" height="150"></canvas>
+        </div>
+      </div>
+
+      <!-- People Mentioned -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">People Mentioned</span>
+          <span class="card-badge" id="people-count">0</span>
+        </div>
+        <div class="card-body">
+          <div class="people-grid" id="people-grid"></div>
+        </div>
+      </div>
+
+      <!-- Key Quotes -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Key Quotes</span>
+          <span class="card-badge">EXTRACTED</span>
+        </div>
+        <div class="card-body" id="key-quotes"></div>
+      </div>
+
+      <!-- Action Items -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Action Items & Decisions</span>
+          <span class="card-badge" id="action-count">0</span>
+        </div>
+        <div class="card-body">
+          <div class="action-items" id="action-items"></div>
+        </div>
+      </div>
+
+      <!-- Word Cloud -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Keyword Frequency</span>
+          <span class="card-badge">TOP 60</span>
+        </div>
+        <div class="card-body">
+          <div class="word-cloud" id="word-cloud"></div>
+        </div>
+      </div>
+
+      <!-- Conversation Flow -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Conversation Turn Flow</span>
+          <span class="card-badge">INTERACTIVE</span>
+        </div>
+        <div class="card-body">
+          <canvas id="turn-chart" height="100"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Segment Detail Overlay -->
+<div class="overlay-bg" id="overlay-bg"></div>
+<div class="segment-detail" id="segment-detail">
+  <button class="segment-detail-close" id="detail-close">&times;</button>
+  <div id="segment-detail-content"></div>
+</div>
+
+<script>
+// ===== TRANSCRIPT DATA =====
+const segments = [
+  { time: "00:00:00", seconds: 0, speaker: "mixed", topic: "Greeting & Weather", sentiment: "positive", sentimentScore: 0.7,
+    lines: [
+      { speaker: "Tristan", text: "Hey Melissa, how's it going?" },
+      { speaker: "Melissa", text: "Hey, good. How are you?" },
+      { speaker: "Tristan", text: "Not bad. It's sunniest winter ever, so no complaints." },
+      { speaker: "Melissa", text: "I know, right? It's basically summer here right now. It's chilly in the morning, but then it gets like 60-65 in the middle of the day." },
+      { speaker: "Tristan", text: "Yeah, it's been like 50 to 55 and sunny here like every day this week, which is crazy. I think it might be 60 today, which is not normal. Northeast is getting the worst winter ever." },
+      { speaker: "Melissa", text: "I've got the temperature for Maine right now and it was like 24 degrees like an hour ago." }
+    ]
+  },
+  { time: "00:03:28", seconds: 208, speaker: "Melissa", topic: "Health & Home Maintenance", sentiment: "concerned", sentimentScore: 0.3,
+    lines: [
+      { speaker: "Melissa", text: "I just got sick again. Like a really serious sinus infection. So, I hope this pneumonia thing isn't coming back, but I've just been trying to kind of take it easy." },
+      { speaker: "Melissa", text: "While Anren's been gone, I just did like a ton of maintenance at his house that needed to be done. Also, I discovered that they have rust in their water, like a lot of rust." },
+      { speaker: "Tristan", text: "How'd you find that out?" },
+      { speaker: "Melissa", text: "A plumber came over. He found a chain in Anjen's garbage disposal and then the water heater is totally rusted out. The drains were completely orange." }
+    ]
+  },
+  { time: "00:04:38", seconds: 278, speaker: "mixed", topic: "Building & Logistics", sentiment: "neutral", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Melissa", text: "Building maintenance is a huge problem here. I've been taking advantage of him being gone and doing a lot of that kind of stuff, getting his cars smogged, tagged." },
+      { speaker: "Melissa", text: "We have the building construction that just started here at this building for the face of the building in the garage." },
+      { speaker: "Melissa", text: "There's this whole agent thing going on in the world where people are spinning up autonomous agents on this open claw thing." }
+    ]
+  },
+  { time: "00:05:49", seconds: 349, speaker: "mixed", topic: "AI Agents & FOMO", sentiment: "excited", sentimentScore: 0.8,
+    lines: [
+      { speaker: "Melissa", text: "I get up at like 6:00 in the morning and I work on stuff like that." },
+      { speaker: "Tristan", text: "What's the end goal of that stuff? To make like passive income or something?" },
+      { speaker: "Melissa", text: "It definitely feels like when Ethereum tokens first came out and the whole IPO thing started in 2017, but it actually has a speed that just keeps lapping itself." },
+      { speaker: "Melissa", text: "People are feeling this urge to be a part. It's a very mimetic FOMO. If I don't know how to spin up a hundred agents and have them doing work for me then I'm going to be completely left out." }
+    ]
+  },
+  { time: "00:07:11", seconds: 431, speaker: "mixed", topic: "Tools, Security & Events", sentiment: "excited", sentimentScore: 0.75,
+    lines: [
+      { speaker: "Tristan", text: "So it's more from a work productivity perspective." },
+      { speaker: "Melissa", text: "There's some guy created a scraper for Poly Market." },
+      { speaker: "Melissa", text: "There's obviously security issues because people doing this are new to coding and engineering, so they don't really know how to make any kind of security stuff." },
+      { speaker: "Melissa", text: "That's my version of the Super Bowl. The Super Bowl is in Santa Clara this weekend. There are so many famous people here right now." }
+    ]
+  },
+  { time: "00:08:07", seconds: 487, speaker: "mixed", topic: "Office Dynamics & Finances", sentiment: "neutral", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Melissa", text: "There's something in the air here. Every company right now is gearing up to present things." },
+      { speaker: "Tristan", text: "How's the office dynamic?" },
+      { speaker: "Melissa", text: "Mostly AJ comes or GT. Quang comes every other day. Julian does not come." },
+      { speaker: "Melissa", text: "When Susette's around, it's better if not really anyone's here because we're getting the money. It's verbal still, but it's very sure that we're going to get Jan Feb back or we never paid in the first place." }
+    ]
+  },
+  { time: "00:09:08", seconds: 548, speaker: "mixed", topic: "Team Interactions", sentiment: "neutral", sentimentScore: 0.45,
+    lines: [
+      { speaker: "Tristan", text: "Have you interacted with those guys much in the last month?" },
+      { speaker: "Melissa", text: "Julian and his team always have a Friday meetup. I never go because my work is very location based. It's at Julian's apartment, which is just too small." },
+      { speaker: "Melissa", text: "I do see AJ a lot because he comes here and then I see Kuang here and there. I don't see Christine." }
+    ]
+  },
+  { time: "00:10:14", seconds: 614, speaker: "Melissa", topic: "Communication Audit", sentiment: "analytical", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Melissa", text: "A couple weeks ago, at the second week of January, I did kind of like an audit on some communication pathways." },
+      { speaker: "Melissa", text: "I wanted to see that Julian was making sure his team was working efficiently. Leslie sends in a lot of inbound stuff but doesn't tag it properly." },
+      { speaker: "Melissa", text: "I was calling out inefficiencies to Julian for cleanup. We had a few calls encouraging him to train judgment rather than just people following orders." },
+      { speaker: "Melissa", text: "Creating frameworks rather than just SOPs or best practices because those can become really brittle over time." }
+    ]
+  },
+  { time: "00:11:30", seconds: 690, speaker: "mixed", topic: "Frameworks vs SOPs", sentiment: "analytical", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Tristan", text: "Is there anything explicit in terms of frameworks that you think we should be implementing?" },
+      { speaker: "Melissa", text: "I'm a diagnostic person. I have to get under the hood to hear, smell, see what's going on." },
+      { speaker: "Melissa", text: "Communication channels are really important and there always has to be someone who understands how the communication works." },
+      { speaker: "Melissa", text: "I'm very location based so I understand some of the bottlenecks that happen with inventory or requests. That's all off Julian's radar. I have to act like a translator to him." }
+    ]
+  },
+  { time: "00:12:43", seconds: 763, speaker: "mixed", topic: "Framework Details", sentiment: "analytical", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Tristan", text: "What exactly is it that you're trying to outline a framework for?" },
+      { speaker: "Melissa", text: "When there's a lot of pressure and people are just doing task management with no brain, just doing a task without thinking about consequences of surrounding areas or later cleanup, things just get broken easily." },
+      { speaker: "Melissa", text: "There could be little tweaks in AJ and Julian where we give them a little bit more judgment in ways that they can control rather than just always following orders to a tea." }
+    ]
+  },
+  { time: "00:13:56", seconds: 836, speaker: "mixed", topic: "Julian's Management", sentiment: "concerned", sentimentScore: 0.35,
+    lines: [
+      { speaker: "Tristan", text: "That sounds ideal. How do we actually make that more of a practice? What is Julian's feedback when you guys talk about that?" },
+      { speaker: "Melissa", text: "Julian admittedly always says he's like that ostrich with his head in the sand type of guy." },
+      { speaker: "Melissa", text: "He's delighted to know he could think about this another way and it could make his life easier. But in practice, it's hard for him because he doesn't want to change up his routines." }
+    ]
+  },
+  { time: "00:15:13", seconds: 913, speaker: "mixed", topic: "Forcing Functions & Audits", sentiment: "analytical", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Melissa", text: "I have to toggle from the weeds to the macro view. I have to tap him on the shoulder in different ways. Sometimes I'll be absolutely brutal, or I'll give him a screenshot of what's going on and a reason why." },
+      { speaker: "Tristan", text: "There should just be sanity checks, audits, forcing functions to help get people's head out of the sand. And then overall structural changes need to happen." },
+      { speaker: "Tristan", text: "Is there anything from a more structural perspective that you think would be low-hanging fruit?" }
+    ]
+  },
+  { time: "00:16:30", seconds: 990, speaker: "mixed", topic: "Julian's Resistance", sentiment: "frustrated", sentimentScore: 0.25,
+    lines: [
+      { speaker: "Melissa", text: "Julian has a very suspicious energy to him. He's always suspicious of something. He's a glass half empty guy with suspicion that manifests his anxiety." },
+      { speaker: "Melissa", text: "You could push a lot of tools his way and he will automatically be like, 'No, I don't want to use that because that could replace me.' He's got that fear-mongering thing in him." },
+      { speaker: "Tristan", text: "He's a gatekeeper at the highest level for that." }
+    ]
+  },
+  { time: "00:17:37", seconds: 1057, speaker: "mixed", topic: "Mimetic Behavior & Safety", sentiment: "analytical", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Melissa", text: "These are actually to help you. They also help you take a breath and reorient to what's actually happening and not what's playing out in your head." },
+      { speaker: "Melissa", text: "If a bunch of other people have that same process and it's a ritualized norm, then he's like 'I feel safe doing that.' He needs mimetic behavior from other people." },
+      { speaker: "Tristan", text: "What's an example of a tool? He gatekeeps so hard on literally every surface." }
+    ]
+  },
+  { time: "00:18:40", seconds: 1120, speaker: "Melissa", topic: "Builder Mode & Tools", sentiment: "excited", sentimentScore: 0.7,
+    lines: [
+      { speaker: "Melissa", text: "So many tools are popping up right now. Not legacy tools, more bespoke stuff. Being in builder mode where you're like, 'I can make a multi-tool for myself right now that's going to be maximally beneficial for my workflow and the company's output.'" },
+      { speaker: "Melissa", text: "Julian has a tendency to just be like brakes. No, no, no. He automatically thinks it's going to replace him." },
+      { speaker: "Melissa", text: "Whenever I talk to most people in the company about these things, they've acted like they've never heard about it before." }
+    ]
+  },
+  { time: "00:19:48", seconds: 1188, speaker: "mixed", topic: "Company Tool Adoption", sentiment: "concerned", sentimentScore: 0.4,
+    lines: [
+      { speaker: "Melissa", text: "I know Moritz is working on it. Jesse's working on it. There's a handful of people tracking what's going on to build tools." },
+      { speaker: "Melissa", text: "Julian's got such a weird work life balance thing. He acts like he doesn't want to do anything like that outside of work." },
+      { speaker: "Tristan", text: "Yeah, that makes sense." }
+    ]
+  },
+  { time: "00:20:58", seconds: 1258, speaker: "mixed", topic: "Operations & Kang's Role", sentiment: "analytical", sentimentScore: 0.45,
+    lines: [
+      { speaker: "Tristan", text: "Where do you think tools could help most in operations? I have a call with Kang shortly. I've given him some free reign with managing Victoria on invoicing and bill pay. But now what's left for him to do? Higher level structural things and tooling. I haven't really seen much output on that side." },
+      { speaker: "Melissa", text: "What I see with a lot of these tools, you have to put them together. They're like a DIY kit you have to build yourself, and it's very particular to your needs." }
+    ]
+  },
+  { time: "00:22:05", seconds: 1325, speaker: "Melissa", topic: "Quarterly Objectives", sentiment: "strategic", sentimentScore: 0.65,
+    lines: [
+      { speaker: "Melissa", text: "It takes a commitment of time and debugging and working through processes. I don't know who here has that kind of staying power." },
+      { speaker: "Melissa", text: "With operations tooling, you have to block it off into quarters. What is our objective for this quarter in operations? Do we want to build out better forecasting and micro audits? If that's the game, we investigate tooling. It doesn't have to be perfect. It can be ephemeral, but you have to commit to building it out and maintaining it." }
+    ]
+  },
+  { time: "00:23:16", seconds: 1396, speaker: "mixed", topic: "New Way of Working", sentiment: "urgent", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Melissa", text: "It's a new kind of way of working. Not for people like you and I because we like maintenance, DIY, getting our hands on things." },
+      { speaker: "Melissa", text: "The idea that you're not going to be spoonfed your work is a new concept. Things are going to become gray in the world of your work versus what you need to do to survive. You need to look for what you need, not wait for a spoon to be put in your mouth." },
+      { speaker: "Tristan", text: "Agency is the biggest gap in the company. I can't dive into every single department and map things out." }
+    ]
+  },
+  { time: "00:24:18", seconds: 1458, speaker: "Tristan", topic: "Productivity & Optimization", sentiment: "frustrated", sentimentScore: 0.35,
+    lines: [
+      { speaker: "Tristan", text: "There are so many tools but you have to be in it for at least a couple weeks. People like Julian, people like Kang, I just don't think they have the foresight to execute on that sort of optimization." },
+      { speaker: "Tristan", text: "Something Tujan and I want to do is try and put ourselves into each system for a few days and understand where we can build tooling and then hand it back off." },
+      { speaker: "Melissa", text: "There's something slightly off for me in that. I hear what you're saying, get inside the system and build the tooling." },
+      { speaker: "Tristan", text: "Maybe not the tooling but get a better understanding so we could provide better guidance or systems." }
+    ]
+  },
+  { time: "00:25:29", seconds: 1529, speaker: "Melissa", topic: "Tooling Grammars", sentiment: "urgent", sentimentScore: 0.65,
+    lines: [
+      { speaker: "Melissa", text: "Anyone that's a human working inside or adjacent to tech has got to figure out how to make tooling grammars for themselves. If they do not know how to work in those grammars and build them out then they're going to fall behind very quick and it's going to show up in almost every surface of their life." },
+      { speaker: "Tristan", text: "That makes me feel like I'm not doing enough from a tooling perspective." },
+      { speaker: "Melissa", text: "You don't have to start from zero. You just got to jump in, get your feet wet, be willing to be in a confusing state for a while, find your lane, and go for it." }
+    ]
+  },
+  { time: "00:26:38", seconds: 1598, speaker: "Tristan", topic: "Office Situation", sentiment: "analytical", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Tristan", text: "I sent over stuff on the office situation. I think we need to think about the office in-person culture dynamic. I'm going to be in the Bay Area most of March and April." },
+      { speaker: "Tristan", text: "We have this weird dynamic where there's one cohort of people that would be the in-office crowd and they're also the least aligned with what we're doing. The incentives are not present." }
+    ]
+  },
+  { time: "00:27:44", seconds: 1664, speaker: "mixed", topic: "Location & Talent Strategy", sentiment: "strategic", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Melissa", text: "If hypothetically moving to somewhere like Pacifica it would be total suicide. It's about attracting people who are really inside of what's happening." },
+      { speaker: "Melissa", text: "The people we have here now are mismatched. I don't know if Daylight as an entity has really understood our one, two, and three-year plan for bringing on the right kind of people and culture." },
+      { speaker: "Melissa", text: "In maybe a year, you and I will laugh because we'll have like 30 of our own employees that are all AI agents." }
+    ]
+  },
+  { time: "00:29:08", seconds: 1748, speaker: "Tristan", topic: "Office Culture Reset", sentiment: "analytical", sentimentScore: 0.5,
+    lines: [
+      { speaker: "Tristan", text: "Attracting top talent is something entirely different. We need to think about where that leverage lies versus people that are solid, can move quick, and work fast." },
+      { speaker: "Tristan", text: "We need a restart button on the office culture. What exists is pretty much very minimal. The space is actually fine. Pretty small but we're not going to hire like 15 people." }
+    ]
+  },
+  { time: "00:30:25", seconds: 1825, speaker: "Tristan", topic: "Lifestyle & Leadership", sentiment: "reflective", sentimentScore: 0.45,
+    lines: [
+      { speaker: "Tristan", text: "The stimulation of the city is a blessing in disguise. How can we design people's habits around what we're preaching externally?" },
+      { speaker: "Tristan", text: "If Julian had a healthier lifestyle, was outside more, not in a dungeon, he wouldn't be so stressed out and anxious." },
+      { speaker: "Tristan", text: "How important is the office location versus where someone lives? The Pacifica idea is like people live there and co-work once a week." }
+    ]
+  },
+  { time: "00:31:28", seconds: 1888, speaker: "mixed", topic: "Unjin's Importance", sentiment: "concerned", sentimentScore: 0.35,
+    lines: [
+      { speaker: "Melissa", text: "100% Unjin is the most important variable. On different angles of how to see this." },
+      { speaker: "Melissa", text: "He's a figure that represents something here and his absence is actually very much felt." },
+      { speaker: "Melissa", text: "Him and Tuj - I could count on less than two hands the amount of times they were here last year." }
+    ]
+  },
+  { time: "00:32:24", seconds: 1944, speaker: "mixed", topic: "Leadership Presence", sentiment: "concerned", sentimentScore: 0.3,
+    lines: [
+      { speaker: "Tristan", text: "Yeah, I was probably there just as much to be honest." },
+      { speaker: "Melissa", text: "When you were here, you were actually more present. I'm here, this is my domain. I'm used to filling in the gaps." },
+      { speaker: "Melissa", text: "For others there is the noticing like there's no leader here. I have to build in some kind of leadership script into the environment here but I can't be Anjen's energy or bring his vision." }
+    ]
+  },
+  { time: "00:33:40", seconds: 2020, speaker: "Melissa", topic: "Office as Representation", sentiment: "strategic", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Melissa", text: "The mission right now is both interesting and good because having the office represents something to the outside world and it's a storing place to parse through unfinished ideas." },
+      { speaker: "Melissa", text: "Once we do start growing, whether it's having a few key solid people or having multiple co-working places, having one in Wyoming, having one closer to the ocean - all of these things have to work dynamically together. None work separately." },
+      { speaker: "Melissa", text: "Anjen's house two blocks away and this place are like an annex. The two are very much bound together." }
+    ]
+  },
+  { time: "00:34:53", seconds: 2093, speaker: "mixed", topic: "Day-in-the-Life Framework", sentiment: "analytical", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Melissa", text: "If we were in the Presidio and he stayed here, we would feel those kinks big time." },
+      { speaker: "Melissa", text: "Move yourself through a day in the life, a week in the life, and a quarter in the life of any number of people who work in this company and how they move through all the different surfaces." },
+      { speaker: "Tristan", text: "That makes sense. I just really wanted to open up the discussion around it." }
+    ]
+  },
+  { time: "00:35:59", seconds: 2159, speaker: "mixed", topic: "Future Planning", sentiment: "strategic", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Melissa", text: "I'm always looking, trust me. It's actually fun for me." },
+      { speaker: "Tristan", text: "If we move the office, Unjun moving his location seems like a massive endeavor. But in the next two years it would be very foolish if he didn't move." },
+      { speaker: "Tristan", text: "We're probably going to outgrow this space and try to have more of a brand print on our physical location. Probably doesn't make sense in the short term but thinking about 2027 is helpful." }
+    ]
+  },
+  { time: "00:37:07", seconds: 2227, speaker: "Melissa", topic: "Hyper Growth & Stability", sentiment: "urgent", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Melissa", text: "This is a year to understand: we're going to go through a hyper growth cycle with AI and quick moving things." },
+      { speaker: "Melissa", text: "Moving a physical space should definitely not be prioritized because there's going to be so many things happening. You're going to either miss out on something really important or drain your vital energy." },
+      { speaker: "Melissa", text: "Right now we have it pretty well made. We have this space, 4 months free, Anjen's house, our storage building. We have a really strong base for creating a better infrastructure." }
+    ]
+  },
+  { time: "00:38:13", seconds: 2293, speaker: "mixed", topic: "Growth & Identity", sentiment: "strategic", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Tristan", text: "In 2026, we need to see what it looks like. If Unjin and I are together for a long period of time. If we are in person more often. Like roles in the company, what does that look like?" },
+      { speaker: "Tristan", text: "It's not a hyper growth year for the company but it should be internally in terms of skills, tools, capabilities, knowledge, and structure." },
+      { speaker: "Melissa", text: "My goal is stability and security for me and my close inner circle. I need to level up on every aspect of my life period." }
+    ]
+  },
+  { time: "00:39:31", seconds: 2371, speaker: "Melissa", topic: "Knowledge Flywheels", sentiment: "excited", sentimentScore: 0.7,
+    lines: [
+      { speaker: "Melissa", text: "Being inside a company helps ground things in practical ways. By end of year, things in the world of speed and building are going to look very different even for electricians." },
+      { speaker: "Melissa", text: "Electrical engineers in general are going to be so needed. Building out a flywheel of having knowledge is super important." },
+      { speaker: "Tristan", text: "Crazy times indeed. What a year." }
+    ]
+  },
+  { time: "00:40:41", seconds: 2441, speaker: "mixed", topic: "Short-term Priorities", sentiment: "positive", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Tristan", text: "What's your priorities in the short term, like the next one to two months?" },
+      { speaker: "Melissa", text: "Unjun's been gone a little under two and a half weeks. I consulted with Oliver." },
+      { speaker: "Melissa", text: "I went in and opened all the boxes, got rid of all the recycling. Tried to be intuitively making sense for him and how he works. I did not touch his work surfaces, just dealt with the Tinker Room and made it more presentable for when he comes back." }
+    ]
+  },
+  { time: "00:41:36", seconds: 2496, speaker: "Melissa", topic: "Knowledge Consolidation", sentiment: "analytical", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Melissa", text: "There's always a disconnect when Anjen wants to bring something into the company and communicate it. I have to be a router. Now that Vaniah's gone, I have to do things that aren't described of me." },
+      { speaker: "Melissa", text: "I'm taking knowledge out of me and consolidating it. Not in brittle SOPs, but thinking like if I was going to duplicate me or delegate something, how am I going to do that?" },
+      { speaker: "Melissa", text: "Getting all these weird relationships of space and people and attitudes and energies out so I understand how I can duplicate, replicate, clone." }
+    ]
+  },
+  { time: "00:42:50", seconds: 2570, speaker: "Melissa", topic: "Maintenance Systems", sentiment: "analytical", sentimentScore: 0.55,
+    lines: [
+      { speaker: "Melissa", text: "Anjen doesn't really think about routine maintenance as important until something's broken." },
+      { speaker: "Melissa", text: "When he has a chief of staff or an EA, they need to jump in on already collated maintenance stuff. I need to plan it when he's out and then calendar it three times a year." },
+      { speaker: "Melissa", text: "Thinking about those systems that keep things moving, grounded, oiled. Same thing with here." }
+    ]
+  },
+  { time: "00:44:06", seconds: 2646, speaker: "Melissa", topic: "Real Estate & Flywheels", sentiment: "strategic", sentimentScore: 0.6,
+    lines: [
+      { speaker: "Melissa", text: "I've been looking at places. If you were to have a whole portfolio of real estate, what does that mean for different locations and how they relate to personnel?" },
+      { speaker: "Melissa", text: "I'm constantly trying to figure out getting that stuff out of my head and putting it into working practice. The next two months? I'm building the kind of flywheel for that." }
+    ]
+  },
+  { time: "00:45:18", seconds: 2718, speaker: "mixed", topic: "Tools Recommendation", sentiment: "urgent", sentimentScore: 0.7,
+    lines: [
+      { speaker: "Melissa", text: "Definitely get yourself into these tools, dude. I'm serious. I don't want to act like a prepper, but we cannot underestimate when there's an entire army of nerds working on this stuff, what's going to happen in 2-3 months." },
+      { speaker: "Melissa", text: "Coming here more frequently. Being here in a way that's both leadering but also learning through the good, bad, ugly. Not being judgmental about it." },
+      { speaker: "Melissa", text: "Coming here for a dedicated time will actually encourage Anjen to be more possibly present here. That would be a heroic thing for you to do." }
+    ]
+  },
+  { time: "00:46:32", seconds: 2792, speaker: "mixed", topic: "Retreat Planning", sentiment: "positive", sentimentScore: 0.7,
+    lines: [
+      { speaker: "Tristan", text: "I'll be spending time with him Monday and Tuesday. Flying to SF before I go on vacation. He wants to do the retreat the first week of April." },
+      { speaker: "Tristan", text: "I engaged Adam from Sway from last year. I can loop you into that. Their service of finding locations and negotiating." },
+      { speaker: "Melissa", text: "I'd say closer to here. Much closer to here. Like NorCal. If people fly into SFO, it's much better because if Mohan's coming and decides to stay, it's just too much hassle otherwise." }
+    ]
+  },
+  { time: "00:47:32", seconds: 2852, speaker: "mixed", topic: "Wrap-up & Next Steps", sentiment: "positive", sentimentScore: 0.75,
+    lines: [
+      { speaker: "Melissa", text: "Are we having all hands on Monday?" },
+      { speaker: "Tristan", text: "I think so. He gets back tomorrow at like 3:30." },
+      { speaker: "Tristan", text: "I'll loop you into that chain with Adam and then we can go from there. Appreciate the chat. Anything else, thoughts, team structure, tools, please share your thoughts." },
+      { speaker: "Melissa", text: "I might voice note you here and there when something comes to mind. When I voice note it sounds like I have resting b**** face but I'm just in my go mode." },
+      { speaker: "Tristan", text: "You're good. Don't worry. Thanks, Melissa." }
+    ]
+  }
+];
+
+const TOTAL_SECONDS = 2938; // 48:58
+
+// ===== TOPIC DEFINITIONS =====
+const topicConfig = {
+  "AI & Tools": { class: "ai", color: "#6c5ce7", keywords: ["agent", "tool", "AI", "builder", "autonom", "scraper", "coding", "engineer", "framework", "grammar"] },
+  "Office & Location": { class: "office", color: "#00cec9", keywords: ["office", "space", "Pacifica", "location", "Presidio", "mission", "building", "move", "lease"] },
+  "Team Dynamics": { class: "team", color: "#fd79a8", keywords: ["Julian", "Kang", "AJ", "Leslie", "Christine", "Victoria", "team", "Friday", "meetup"] },
+  "Operations": { class: "ops", color: "#fdcb6e", keywords: ["maintenance", "audit", "SOP", "workflow", "communication", "efficiency", "invoic", "inventory"] },
+  "Personal": { class: "personal", color: "#74b9ff", keywords: ["sick", "health", "weather", "pneumonia", "lifestyle", "Super Bowl"] },
+  "Strategy": { class: "strategy", color: "#55efc4", keywords: ["growth", "talent", "culture", "quarter", "plan", "retreat", "hiring", "invest", "brand", "identity"] }
+};
+
+// ===== PEOPLE DATA =====
+const peopleData = [
+  { name: "Julian", mentions: 28, color: "#fd79a8", role: "Team Lead" },
+  { name: "Unjin/Anjen", mentions: 18, color: "#6c5ce7", role: "Founder" },
+  { name: "Kang/Quang", mentions: 8, color: "#fdcb6e", role: "Operations" },
+  { name: "AJ", mentions: 6, color: "#00cec9", role: "Team" },
+  { name: "Tuj/Tujan", mentions: 5, color: "#55efc4", role: "Leadership" },
+  { name: "Victoria", mentions: 3, color: "#74b9ff", role: "Invoicing" },
+  { name: "Jesse", mentions: 3, color: "#a29bfe", role: "Engineering" },
+  { name: "Moritz", mentions: 2, color: "#ffeaa7", role: "Engineering" },
+  { name: "Leslie", mentions: 2, color: "#fab1a0", role: "Inbound" },
+  { name: "Susette", mentions: 2, color: "#81ecec", role: "Finance" },
+  { name: "Adam/Sway", mentions: 2, color: "#dfe6e9", role: "Retreat" },
+  { name: "Mohan", mentions: 1, color: "#b2bec3", role: "Team" },
+  { name: "Oliver", mentions: 1, color: "#636e72", role: "Consultant" },
+  { name: "Vaniah", mentions: 1, color: "#e17055", role: "Former" },
+  { name: "GT", mentions: 1, color: "#00b894", role: "Team" },
+  { name: "Christine", mentions: 1, color: "#e84393", role: "Team" }
+];
+
+// ===== KEY QUOTES =====
+const keyQuotes = [
+  { text: "If I don't know how to spin up a hundred agents and have them doing work for me then I'm going to be completely left out.", speaker: "Melissa", time: "05:49" },
+  { text: "Agency is the biggest gap in the company. I can't dive into every single department and map things out.", speaker: "Tristan", time: "23:16" },
+  { text: "Anyone that's a human working inside or adjacent to tech has got to figure out how to make tooling grammars for themselves.", speaker: "Melissa", time: "25:29" },
+  { text: "In maybe a year, you and I will laugh because we'll have like 30 of our own employees that are all AI agents.", speaker: "Melissa", time: "27:44" },
+  { text: "We need a restart button on the office culture. What exists is pretty much very minimal.", speaker: "Tristan", time: "29:08" },
+  { text: "He's a figure that represents something here and his absence is actually very much felt.", speaker: "Melissa", time: "31:28" },
+  { text: "Creating frameworks rather than just SOPs or best practices because those can become really brittle over time.", speaker: "Melissa", time: "10:14" },
+  { text: "He will automatically be like, 'No, I don't want to use that because that could replace me.'", speaker: "Melissa", time: "16:30" }
+];
+
+// ===== ACTION ITEMS =====
+const actionItems = [
+  { text: "Loop Melissa into retreat planning chain with Adam from Sway", owner: "Tristan", priority: "high" },
+  { text: "Plan company retreat for first week of April, NorCal location near SFO", owner: "Tristan / Adam", priority: "high" },
+  { text: "Tristan to spend most of March and April in Bay Area", owner: "Tristan", priority: "high" },
+  { text: "Tristan to have call with Kang about role, tooling, and higher-level output", owner: "Tristan", priority: "high" },
+  { text: "Talk to Julian about gatekeeping and tool adoption", owner: "Tristan", priority: "med" },
+  { text: "Build forcing functions and sanity checks for team operations", owner: "Melissa / Julian", priority: "med" },
+  { text: "Continue consolidating institutional knowledge for delegation/duplication", owner: "Melissa", priority: "med" },
+  { text: "Set up calendared maintenance schedule (3x/year) for Anjen's property", owner: "Melissa", priority: "med" },
+  { text: "Confirm all-hands meeting for Monday", owner: "Tristan", priority: "med" },
+  { text: "Push on Susette for additional rent concessions during construction", owner: "Melissa", priority: "low" },
+  { text: "Investigate quarterly operations objectives and matching tooling", owner: "Team", priority: "low" },
+  { text: "Encourage company-wide tool adoption and builder culture", owner: "Leadership", priority: "low" }
+];
+
+// ===== WORD FREQUENCY =====
+const wordFreq = [
+  ["tools",22],["Julian",28],["office",16],["agents",14],["people",26],["work",32],["company",12],
+  ["building",14],["framework",10],["think",30],["maintenance",10],["tooling",10],["operations",6],
+  ["culture",8],["communication",6],["space",10],["location",8],["Unjin",12],["growth",8],["quarter",6],
+  ["knowledge",8],["workflow",6],["audit",4],["practice",6],["judgment",6],["team",10],["present",6],
+  ["leadership",4],["builder",4],["flywheel",4],["energy",6],["anxiety",3],["gatekeeper",3],
+  ["efficiency",4],["talent",4],["lifestyle",4],["Pacifica",3],["retreat",4],["dynamics",4],
+  ["systems",6],["diagnostics",3],["FOMO",3],["Ethereum",2],["passive",3],["security",4],
+  ["Victoria",3],["SOP",4],["proactive",3],["mimetic",3],["Kang",6],["structural",4],
+  ["AJ",5],["optimize",3],["surveillance",2],["delegate",3],["replicate",2],["consolidate",3],
+  ["infrastructure",3],["objectives",3],["DIY",3],["routine",3]
+];
+
+// ===== STATE =====
+let currentSeconds = 0;
+let isPlaying = false;
+let playSpeed = 1;
+let playInterval = null;
+let activeSegmentIdx = 0;
+let searchTerm = "";
+
+// ===== INITIALIZATION =====
+document.addEventListener('DOMContentLoaded', () => {
+  buildTranscript();
+  buildWaveform();
+  buildTopicTags();
+  buildPeopleGrid();
+  buildKeyQuotes();
+  buildActionItems();
+  buildWordCloud();
+  drawSentimentChart();
+  drawTopicChart();
+  drawPaceChart();
+  drawTurnChart();
+  updateStats();
+  updateSegmentCount();
+  setupEventListeners();
+  updateActiveSegment();
+});
+
+function updateSegmentCount() {
+  document.getElementById('segment-count').textContent = segments.length;
+}
+
+// ===== TRANSCRIPT =====
+function buildTranscript() {
+  const container = document.getElementById('transcript-list');
+  container.innerHTML = '';
+  segments.forEach((seg, i) => {
+    const div = document.createElement('div');
+    div.className = 'transcript-entry';
+    div.dataset.index = i;
+    div.onclick = () => scrubTo(seg.seconds);
+
+    let linesHTML = seg.lines.map(l => {
+      const cls = l.speaker === 'Tristan' ? 'tristan' : 'melissa';
+      let text = l.text;
+      if (searchTerm) {
+        const re = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        text = text.replace(re, '<span class="highlight">$1</span>');
+      }
+      return `<div class="transcript-speaker ${cls}">${l.speaker}</div><div class="transcript-text">${text}</div>`;
+    }).join('');
+
+    div.innerHTML = `
+      <div class="transcript-timestamp">${seg.time}</div>
+      ${linesHTML}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ===== WAVEFORM =====
+function buildWaveform() {
+  const container = document.getElementById('waveform');
+  container.innerHTML = '';
+  const barCount = 300;
+  // Generate pseudo-random waveform data seeded from transcript data
+  for (let i = 0; i < barCount; i++) {
+    const t = (i / barCount) * TOTAL_SECONDS;
+    const seg = getSegmentAt(t);
+    const speaker = seg ? (seg.speaker === 'Melissa' ? 'melissa' : seg.speaker === 'Tristan' ? 'tristan' : (Math.sin(i * 0.7) > 0 ? 'melissa' : 'tristan')) : 'tristan';
+    const bar = document.createElement('div');
+    bar.className = `wave-bar ${speaker}`;
+    const h = 6 + Math.abs(Math.sin(i * 0.3) * Math.cos(i * 0.17) * 32 + Math.sin(i * 0.07) * 10);
+    bar.style.height = h + 'px';
+    bar.dataset.time = Math.floor(t);
+    container.appendChild(bar);
+  }
+}
+
+function getSegmentAt(seconds) {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (seconds >= segments[i].seconds) return segments[i];
+  }
+  return segments[0];
+}
+
+function getSegmentIndex(seconds) {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (seconds >= segments[i].seconds) return i;
+  }
+  return 0;
+}
+
+// ===== TOPIC TAGS =====
+function buildTopicTags() {
+  const container = document.getElementById('topic-tags');
+  container.innerHTML = '';
+  Object.entries(topicConfig).forEach(([name, cfg]) => {
+    const count = segments.filter(s =>
+      cfg.keywords.some(kw => s.topic.toLowerCase().includes(kw.toLowerCase()) ||
+        s.lines.some(l => l.text.toLowerCase().includes(kw.toLowerCase())))
+    ).length;
+    const tag = document.createElement('span');
+    tag.className = `topic-tag ${cfg.class}`;
+    tag.innerHTML = `${name} <span class="count">${count}</span>`;
+    tag.onclick = () => {
+      document.querySelectorAll('.topic-tag').forEach(t => t.classList.remove('active'));
+      tag.classList.toggle('active');
+    };
+    container.appendChild(tag);
+  });
+}
+
+// ===== PEOPLE GRID =====
+function buildPeopleGrid() {
+  const container = document.getElementById('people-grid');
+  document.getElementById('people-count').textContent = peopleData.length;
+  container.innerHTML = '';
+  peopleData.forEach(p => {
+    const node = document.createElement('div');
+    node.className = 'person-node';
+    const initials = p.name.split('/')[0].substring(0, 2).toUpperCase();
+    node.innerHTML = `
+      <div class="person-avatar" style="background:${p.color}22;color:${p.color}">${initials}</div>
+      <div class="person-name">${p.name.split('/')[0]}</div>
+      <div class="person-mentions">${p.mentions}x &middot; ${p.role}</div>
+    `;
+    node.onclick = () => {
+      document.querySelectorAll('.person-node').forEach(n => n.classList.remove('highlighted'));
+      node.classList.toggle('highlighted');
+    };
+    container.appendChild(node);
+  });
+}
+
+// ===== KEY QUOTES =====
+function buildKeyQuotes() {
+  const container = document.getElementById('key-quotes');
+  container.innerHTML = '';
+  keyQuotes.forEach(q => {
+    const div = document.createElement('div');
+    div.className = `quote-block ${q.speaker === 'Melissa' ? 'melissa-quote' : ''}`;
+    div.innerHTML = `"${q.text}"<div class="quote-attr">&mdash; ${q.speaker} at ${q.time}</div>`;
+    div.onclick = () => {
+      const [m, s] = q.time.split(':').map(Number);
+      scrubTo(m * 60 + s);
+    };
+    container.appendChild(div);
+  });
+}
+
+// ===== ACTION ITEMS =====
+function buildActionItems() {
+  const container = document.getElementById('action-items');
+  document.getElementById('action-count').textContent = actionItems.length;
+  container.innerHTML = '';
+  actionItems.forEach(a => {
+    const div = document.createElement('div');
+    div.className = `action-item priority-${a.priority}`;
+    div.innerHTML = `<div class="action-owner" style="color:${a.priority === 'high' ? '#fd79a8' : a.priority === 'med' ? '#fdcb6e' : '#74b9ff'}">${a.owner} &middot; ${a.priority.toUpperCase()}</div>${a.text}`;
+    container.appendChild(div);
+  });
+}
+
+// ===== WORD CLOUD =====
+function buildWordCloud() {
+  const container = document.getElementById('word-cloud');
+  container.innerHTML = '';
+  const maxFreq = Math.max(...wordFreq.map(w => w[1]));
+  const colors = ['#6c5ce7','#00cec9','#fd79a8','#fdcb6e','#55efc4','#74b9ff','#a29bfe','#fab1a0','#81ecec','#ffeaa7'];
+  const shuffled = [...wordFreq].sort(() => Math.random() - 0.5);
+  shuffled.forEach(([word, freq]) => {
+    const span = document.createElement('span');
+    span.className = 'cloud-word';
+    const size = 11 + (freq / maxFreq) * 24;
+    const opacity = 0.4 + (freq / maxFreq) * 0.6;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    span.style.cssText = `font-size:${size}px;color:${color};opacity:${opacity};font-weight:${freq > 10 ? 600 : 400}`;
+    span.textContent = word;
+    span.title = `${word}: ${freq} mentions`;
+    container.appendChild(span);
+  });
+}
+
+// ===== CHARTS =====
+
+// Sentiment Chart
+function drawSentimentChart() {
+  const canvas = document.getElementById('sentiment-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth;
+  const H = 160;
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(2, 2);
+
+  const pad = { top: 20, right: 20, bottom: 30, left: 40 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Grid
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (chartH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  // Labels
+  ctx.fillStyle = '#6a6a7a';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'right';
+  ['1.0', '0.75', '0.5', '0.25', '0'].forEach((l, i) => {
+    ctx.fillText(l, pad.left - 6, pad.top + (chartH / 4) * i + 3);
+  });
+
+  // Data points
+  const points = segments.map((s, i) => ({
+    x: pad.left + (s.seconds / TOTAL_SECONDS) * chartW,
+    y: pad.top + chartH - (s.sentimentScore * chartH)
+  }));
+
+  // Gradient fill
+  const gradient = ctx.createLinearGradient(0, pad.top, 0, pad.top + chartH);
+  gradient.addColorStop(0, 'rgba(108,92,231,0.15)');
+  gradient.addColorStop(1, 'rgba(108,92,231,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, pad.top + chartH);
+  points.forEach((p, i) => {
+    if (i === 0) ctx.lineTo(p.x, p.y);
+    else {
+      const prev = points[i - 1];
+      const cpx = (prev.x + p.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, p.y, p.x, p.y);
+    }
+  });
+  ctx.lineTo(points[points.length - 1].x, pad.top + chartH);
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else {
+      const prev = points[i - 1];
+      const cpx = (prev.x + p.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, p.y, p.x, p.y);
+    }
+  });
+  ctx.strokeStyle = '#6c5ce7';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Points
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = segments[i].sentimentScore > 0.6 ? '#55efc4' :
+                    segments[i].sentimentScore > 0.4 ? '#fdcb6e' : '#fd79a8';
+    ctx.fill();
+  });
+
+  // Current position marker
+  const cx = pad.left + (currentSeconds / TOTAL_SECONDS) * chartW;
+  ctx.beginPath();
+  ctx.moveTo(cx, pad.top); ctx.lineTo(cx, pad.top + chartH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Time labels
+  ctx.fillStyle = '#6a6a7a';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  [0, 10, 20, 30, 40, 48].forEach(m => {
+    const x = pad.left + ((m * 60) / TOTAL_SECONDS) * chartW;
+    ctx.fillText(`${m}m`, x, H - 8);
+  });
+}
+
+// Topic Chart (stacked area)
+function drawTopicChart() {
+  const canvas = document.getElementById('topic-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth;
+  const H = 130;
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(2, 2);
+
+  const pad = { top: 10, right: 20, bottom: 25, left: 10 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  const topicNames = Object.keys(topicConfig);
+  const topicColors = Object.values(topicConfig).map(c => c.color);
+  const bucketCount = 20;
+  const bucketSize = TOTAL_SECONDS / bucketCount;
+
+  // Calculate topic intensity per bucket
+  const buckets = [];
+  for (let b = 0; b < bucketCount; b++) {
+    const bStart = b * bucketSize;
+    const bEnd = (b + 1) * bucketSize;
+    const row = topicNames.map((name, ti) => {
+      const cfg = topicConfig[name];
+      let score = 0;
+      segments.forEach(seg => {
+        if (seg.seconds >= bStart && seg.seconds < bEnd) {
+          cfg.keywords.forEach(kw => {
+            seg.lines.forEach(l => {
+              const matches = (l.text.toLowerCase().match(new RegExp(kw.toLowerCase(), 'g')) || []).length;
+              score += matches;
+            });
+            if (seg.topic.toLowerCase().includes(kw.toLowerCase())) score += 2;
+          });
+        }
+      });
+      return score;
+    });
+    // Normalize
+    const sum = row.reduce((a, b) => a + b, 0) || 1;
+    buckets.push(row.map(v => v / sum));
+  }
+
+  // Draw stacked areas
+  for (let ti = topicNames.length - 1; ti >= 0; ti--) {
+    ctx.beginPath();
+    const topPoints = [];
+    const bottomPoints = [];
+    for (let b = 0; b < bucketCount; b++) {
+      const x = pad.left + (b / (bucketCount - 1)) * chartW;
+      let yBottom = 0;
+      for (let j = 0; j < ti; j++) yBottom += buckets[b][j];
+      let yTop = yBottom + buckets[b][ti];
+      topPoints.push({ x, y: pad.top + chartH - yTop * chartH });
+      bottomPoints.push({ x, y: pad.top + chartH - yBottom * chartH });
+    }
+
+    ctx.moveTo(topPoints[0].x, topPoints[0].y);
+    for (let i = 1; i < topPoints.length; i++) {
+      const prev = topPoints[i-1];
+      const cpx = (prev.x + topPoints[i].x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, topPoints[i].y, topPoints[i].x, topPoints[i].y);
+    }
+    for (let i = bottomPoints.length - 1; i >= 0; i--) {
+      if (i === bottomPoints.length - 1) ctx.lineTo(bottomPoints[i].x, bottomPoints[i].y);
+      else {
+        const next = bottomPoints[i + 1];
+        const cpx = (next.x + bottomPoints[i].x) / 2;
+        ctx.bezierCurveTo(cpx, next.y, cpx, bottomPoints[i].y, bottomPoints[i].x, bottomPoints[i].y);
+      }
+    }
+    ctx.closePath();
+    ctx.fillStyle = topicColors[ti] + '44';
+    ctx.fill();
+    ctx.strokeStyle = topicColors[ti] + '88';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Time labels
+  ctx.fillStyle = '#6a6a7a';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  [0, 10, 20, 30, 40, 48].forEach(m => {
+    const x = pad.left + ((m * 60) / TOTAL_SECONDS) * chartW;
+    ctx.fillText(`${m}m`, x, H - 5);
+  });
+
+  // Current position
+  const cx = pad.left + (currentSeconds / TOTAL_SECONDS) * chartW;
+  ctx.beginPath();
+  ctx.moveTo(cx, pad.top); ctx.lineTo(cx, pad.top + chartH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// Speaking Pace Chart
+function drawPaceChart() {
+  const canvas = document.getElementById('pace-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth;
+  const H = 150;
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(2, 2);
+
+  const pad = { top: 15, right: 15, bottom: 25, left: 40 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Calculate WPM per segment
+  const tristanPace = [];
+  const melissaPace = [];
+
+  segments.forEach((seg, i) => {
+    const nextSec = (i < segments.length - 1) ? segments[i + 1].seconds : TOTAL_SECONDS;
+    const duration = (nextSec - seg.seconds) / 60; // minutes
+    let tWords = 0, mWords = 0;
+    seg.lines.forEach(l => {
+      const wc = l.text.split(/\s+/).length;
+      if (l.speaker === 'Tristan') tWords += wc;
+      else mWords += wc;
+    });
+    tristanPace.push({ x: seg.seconds, wpm: duration > 0 ? tWords / duration : 0 });
+    melissaPace.push({ x: seg.seconds, wpm: duration > 0 ? mWords / duration : 0 });
+  });
+
+  const maxWPM = Math.max(...tristanPace.map(p => p.wpm), ...melissaPace.map(p => p.wpm), 1);
+
+  // Grid
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (chartH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#6a6a7a';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxWPM * (1 - i / 4)), pad.left - 6, y + 3);
+  }
+
+  // Draw lines
+  function drawLine(data, color) {
+    const pts = data.map(d => ({
+      x: pad.left + (d.x / TOTAL_SECONDS) * chartW,
+      y: pad.top + chartH - (d.wpm / maxWPM) * chartH
+    }));
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else {
+        const prev = pts[i - 1];
+        const cpx = (prev.x + p.x) / 2;
+        ctx.bezierCurveTo(cpx, prev.y, cpx, p.y, p.x, p.y);
+      }
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+
+  drawLine(tristanPace, '#6c5ce7');
+  drawLine(melissaPace, '#00cec9');
+
+  // Legend
+  ctx.fillStyle = '#6c5ce7'; ctx.fillRect(pad.left, H - 10, 8, 3);
+  ctx.fillStyle = '#6a6a7a'; ctx.font = '9px Inter'; ctx.textAlign = 'left';
+  ctx.fillText('Tristan', pad.left + 12, H - 7);
+  ctx.fillStyle = '#00cec9'; ctx.fillRect(pad.left + 65, H - 10, 8, 3);
+  ctx.fillStyle = '#6a6a7a';
+  ctx.fillText('Melissa', pad.left + 77, H - 7);
+}
+
+// Turn Chart (who's speaking when)
+function drawTurnChart() {
+  const canvas = document.getElementById('turn-chart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth;
+  const H = 100;
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(2, 2);
+
+  const pad = { top: 20, right: 20, bottom: 20, left: 60 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Labels
+  ctx.fillStyle = '#a29bfe';
+  ctx.font = '10px Inter';
+  ctx.textAlign = 'right';
+  ctx.fillText('Tristan', pad.left - 8, pad.top + chartH * 0.25 + 4);
+  ctx.fillStyle = '#55efc4';
+  ctx.fillText('Melissa', pad.left - 8, pad.top + chartH * 0.75 + 4);
+
+  // Center line
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top + chartH / 2);
+  ctx.lineTo(W - pad.right, pad.top + chartH / 2);
+  ctx.stroke();
+
+  // Draw turn blocks
+  segments.forEach((seg, i) => {
+    const nextSec = (i < segments.length - 1) ? segments[i + 1].seconds : TOTAL_SECONDS;
+    const x = pad.left + (seg.seconds / TOTAL_SECONDS) * chartW;
+    const w = Math.max(2, ((nextSec - seg.seconds) / TOTAL_SECONDS) * chartW - 1);
+
+    seg.lines.forEach(l => {
+      const isT = l.speaker === 'Tristan';
+      const y = isT ? pad.top + 2 : pad.top + chartH / 2 + 2;
+      const h = chartH / 2 - 4;
+      const wc = l.text.split(/\s+/).length;
+      const intensity = Math.min(1, wc / 60);
+      ctx.fillStyle = isT ? `rgba(108,92,231,${0.2 + intensity * 0.6})` : `rgba(0,206,201,${0.2 + intensity * 0.6})`;
+      ctx.fillRect(x, y, w, h);
+    });
+  });
+
+  // Playhead
+  const cx = pad.left + (currentSeconds / TOTAL_SECONDS) * chartW;
+  ctx.beginPath();
+  ctx.moveTo(cx, pad.top); ctx.lineTo(cx, pad.top + chartH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Time labels
+  ctx.fillStyle = '#6a6a7a';
+  ctx.font = '9px JetBrains Mono';
+  ctx.textAlign = 'center';
+  [0, 10, 20, 30, 40, 48].forEach(m => {
+    const x = pad.left + ((m * 60) / TOTAL_SECONDS) * chartW;
+    ctx.fillText(`${m}m`, x, H - 3);
+  });
+}
+
+// ===== STATS =====
+function updateStats() {
+  let tWords = 0, mWords = 0, tTurns = 0, mTurns = 0, tQ = 0, mQ = 0;
+  const upTo = currentSeconds;
+
+  segments.forEach(seg => {
+    if (seg.seconds > upTo) return;
+    seg.lines.forEach(l => {
+      const wc = l.text.split(/\s+/).length;
+      const questions = (l.text.match(/\?/g) || []).length;
+      if (l.speaker === 'Tristan') {
+        tWords += wc; tTurns++; tQ += questions;
+      } else {
+        mWords += wc; mTurns++; mQ += questions;
+      }
+    });
+  });
+
+  const total = tWords + mWords || 1;
+  const tPct = Math.round((tWords / total) * 100);
+  const mPct = 100 - tPct;
+
+  document.getElementById('tristan-words').textContent = tWords.toLocaleString();
+  document.getElementById('melissa-words').textContent = mWords.toLocaleString();
+  document.getElementById('tristan-turns').textContent = tTurns;
+  document.getElementById('melissa-turns').textContent = mTurns;
+  document.getElementById('tristan-avg').textContent = tTurns ? Math.round(tWords / tTurns) + 'w' : '0w';
+  document.getElementById('melissa-avg').textContent = mTurns ? Math.round(mWords / mTurns) + 'w' : '0w';
+  document.getElementById('tristan-questions').textContent = tQ;
+  document.getElementById('melissa-questions').textContent = mQ;
+  document.getElementById('tristan-ratio').style.width = tPct + '%';
+  document.getElementById('melissa-ratio').style.width = mPct + '%';
+  document.getElementById('tristan-pct').textContent = tPct + '%';
+  document.getElementById('melissa-pct').textContent = mPct + '%';
+}
+
+// ===== SCRUBBER =====
+function scrubTo(seconds) {
+  currentSeconds = Math.max(0, Math.min(seconds, TOTAL_SECONDS));
+  updateUI();
+}
+
+function updateUI() {
+  // Update time display
+  const h = Math.floor(currentSeconds / 3600);
+  const m = Math.floor((currentSeconds % 3600) / 60);
+  const s = Math.floor(currentSeconds % 60);
+  document.getElementById('current-time').textContent =
+    String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+  // Update playhead
+  const pct = (currentSeconds / TOTAL_SECONDS) * 100;
+  document.getElementById('playhead').style.left = pct + '%';
+
+  // Update active waveform bars
+  const bars = document.querySelectorAll('.wave-bar');
+  bars.forEach(bar => {
+    const t = parseInt(bar.dataset.time);
+    bar.classList.toggle('active', t <= currentSeconds);
+  });
+
+  // Update active segment
+  updateActiveSegment();
+
+  // Update topic
+  const seg = getSegmentAt(currentSeconds);
+  if (seg) {
+    document.getElementById('current-topic').textContent = seg.topic;
+    const sentimentMap = {
+      positive: 'POSITIVE', neutral: 'NEUTRAL', concerned: 'CONCERNED',
+      excited: 'EXCITED', analytical: 'ANALYTICAL', frustrated: 'FRUSTRATED',
+      strategic: 'STRATEGIC', urgent: 'URGENT', reflective: 'REFLECTIVE'
+    };
+    document.getElementById('current-sentiment-badge').textContent = sentimentMap[seg.sentiment] || 'NEUTRAL';
+  }
+
+  // Update stats (animated)
+  updateStats();
+
+  // Redraw charts with playhead
+  drawSentimentChart();
+  drawTopicChart();
+  drawTurnChart();
+}
+
+function updateActiveSegment() {
+  const idx = getSegmentIndex(currentSeconds);
+  if (idx !== activeSegmentIdx) {
+    activeSegmentIdx = idx;
+  }
+  document.querySelectorAll('.transcript-entry').forEach((el, i) => {
+    const isActive = i === idx;
+    el.classList.toggle('active', isActive);
+    const seg = segments[i];
+    const isMelissa = seg && seg.speaker === 'Melissa';
+    el.classList.toggle('melissa-active', isActive && isMelissa);
+  });
+
+  // Scroll transcript to active
+  const activeEl = document.querySelector('.transcript-entry.active');
+  if (activeEl) {
+    const panel = document.getElementById('transcript-panel');
+    const elTop = activeEl.offsetTop - panel.offsetTop;
+    const panelScroll = panel.scrollTop;
+    const panelH = panel.clientHeight;
+    if (elTop < panelScroll || elTop > panelScroll + panelH - 100) {
+      panel.scrollTo({ top: elTop - 100, behavior: 'smooth' });
+    }
+  }
+}
+
+// ===== PLAYBACK =====
+function togglePlay() {
+  isPlaying = !isPlaying;
+  document.getElementById('play-btn').innerHTML = isPlaying ? '&#10074;&#10074;' : '&#9654;';
+  if (isPlaying) {
+    if (currentSeconds >= TOTAL_SECONDS) currentSeconds = 0;
+    playInterval = setInterval(() => {
+      currentSeconds += playSpeed;
+      if (currentSeconds >= TOTAL_SECONDS) {
+        currentSeconds = TOTAL_SECONDS;
+        togglePlay();
+      }
+      updateUI();
+    }, 100);
+  } else {
+    clearInterval(playInterval);
+  }
+}
+
+// ===== EVENT LISTENERS =====
+function setupEventListeners() {
+  // Play button
+  document.getElementById('play-btn').addEventListener('click', togglePlay);
+
+  // Speed buttons
+  document.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      playSpeed = parseInt(btn.dataset.speed);
+    });
+  });
+
+  // Timeline click/drag
+  const track = document.getElementById('timeline-track');
+  let isDragging = false;
+
+  function handleTrackClick(e) {
+    const rect = track.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    scrubTo(pct * TOTAL_SECONDS);
+  }
+
+  track.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    handleTrackClick(e);
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) handleTrackClick(e);
+  });
+  document.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Search
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', (e) => {
+    searchTerm = e.target.value;
+    buildTranscript();
+    updateActiveSegment();
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    if (e.code === 'ArrowLeft') { e.preventDefault(); scrubTo(currentSeconds - 30); }
+    if (e.code === 'ArrowRight') { e.preventDefault(); scrubTo(currentSeconds + 30); }
+  });
+
+  // Detail panel close
+  document.getElementById('detail-close').addEventListener('click', closeDetail);
+  document.getElementById('overlay-bg').addEventListener('click', closeDetail);
+
+  // Resize handler
+  window.addEventListener('resize', () => {
+    drawSentimentChart();
+    drawTopicChart();
+    drawPaceChart();
+    drawTurnChart();
+  });
+
+  // Initialize to show full transcript data
+  scrubTo(TOTAL_SECONDS);
+}
+
+function closeDetail() {
+  document.getElementById('segment-detail').classList.remove('open');
+  document.getElementById('overlay-bg').classList.remove('open');
+}
+
+// Scrub to end to show full stats initially
+</script>
+</body>
+</html>
